@@ -40,11 +40,11 @@ public:
 		myRobot.SetSafetyEnabled(true);
 		while (IsOperatorControl() && IsEnabled())
 		{
-			if(stick.GetRawAxis(4)>0.15)//left trigger
+			if(abs(stick.GetRawAxis(4))>0.15)//left trigger
 			{
 				myRobot.Drive(1.0,-1.0);//turn left
 			}
-			if(stick.GetRawAxis(5)>0.15)//right trigger
+			if(abs(stick.GetRawAxis(5))>0.15)//right trigger
 			{
 				myRobot.Drive(1.0,1.0);//turn right
 			}
