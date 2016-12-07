@@ -1,5 +1,5 @@
 #include "WPILib.h"
-
+#include "LCD2004.h"
 /**
  * This is a demo program showing the use of the RobotDrive class.
  * The SampleRobot class is the base of a robot application that will automatically call your
@@ -12,56 +12,94 @@
  */
 class Robot: public SampleRobot
 {
-	RobotDrive myRobot; // robot drive system
+
 	Joystick stick; // only joystick
+	I2C *LCDDisplay;
+
 
 public:
 	Robot() :
-			myRobot(9, 8, 7, 6), //fl, fr, rl, rr
-			stick(0)		// as they are declared above.
+
+			stick(0)
+			//LCDDisplay(I2C::Port::kOnboard, 0x27)
+
 	{
 		//Note SmartDashboard is not initialized here, wait until RobotInit to make SmartDashboard calls
-		myRobot.SetExpiration(0.1);//
+		LCDDisplay = new I2C(I2C::Port::kOnboard, 0x3F);// 0x3f
+		//initLCD();
 	}
-
 	void RobotInit()
 	{
+		initLCD();
 	}
+		void initLCD() {
+
+			LCDwriteCMD(0x03);
+			LCDwriteCMD(0x03);
+			LCDwriteCMD(0x03);
+			LCDwriteCMD(0x02);
+			//4 bit mode??? -- yes. Always. It's the default way of doing this for LCD displays
+			LCDwriteCMD( LCD_FUNCTIONSET | LCD_2LINE | LCD_5x8DOTS | LCD_4BITMODE );
+			LCDwriteCMD( LCD_DISPLAYCONTROL | LCD_DISPLAYON );
+			LCDwriteCMD( LCD_CLEARDISPLAY );
+			LCDwriteCMD( LCD_ENTRYMODESET | LCD_ENTRYLEFT );
+			zsleep(10);
+		}
+		void zsleep(int t) //time in ms
+		{
+		Wait(t);
+		}
+		void LCDwriteCMD (int data) {
+			LCD_rawWrite(data & 0xF0);
+			LCD_rawWrite((data <<4 ) & 0xF0);
+		}
+		void LCDwriteChar ( int data) {
+			LCD_rawWrite( Rs |  (data & 0xF0));
+			LCD_rawWrite( Rs | ((data <<4 ) & 0xF0));
+		}
+		void LCD_rawWrite( int data) {
+			LCDDisplay->Write(0, data | LCD_BACKLIGHT );
+			strobe(data);
+		}
+		void strobe(int data){
+			//    	Syntax: lcdDisplay.write(reg,data);
+			LCDDisplay->Write(0, data | En | LCD_BACKLIGHT );
+			zsleep(1);
+			LCDDisplay->Write(0, (data & ~En) | LCD_BACKLIGHT );
+			zsleep(1);
+		}
+		void LCDwriteString(std::string s, int line) {
+				switch (line) {
+				case 1: LCDwriteCMD(0x80); break;
+				case 2: LCDwriteCMD(0xC0); break;
+				case 3: LCDwriteCMD(0x94); break;
+				case 4: LCDwriteCMD(0xD4); break;
+				default: return;	//invalid line number does nothing.
+				}
+		}
 	void Autonomous()
 	{
+		while(IsAutonomous()&&IsEnabled())
+		{
 
+
+		}
 	}
-
-	/**
-	 * Runs the motors with arcade steering.
-	 */
 	void OperatorControl()
 	{
-		myRobot.SetSafetyEnabled(true);
-		while (IsOperatorControl() && IsEnabled())
-		{
-			if(abs(stick.GetRawAxis(4))>0.15)//left trigger
-			{
-				myRobot.Drive(1.0,-1.0);//turn left
-			}
-			if(abs(stick.GetRawAxis(5))>0.15)//right trigger
-			{
-				myRobot.Drive(1.0,1.0);//turn right
-			}
-			else
-			{
-				myRobot.MecanumDrive_Cartesian(stick.GetRawAxis(4), -1*stick.GetRawAxis(5),0); // drive with arcade style (use right stick)
-			}
-			Wait(0.005);				// wait for a motor update time
 
-			}
 	}
-
-	/**
-	 * Runs during test mode
-	 */
 	void Test()
 	{
+		LCDwriteCMD(LCD_CLEARDISPLAY);
+		LCDwriteString("test",1);
+		Wait(1.0);
+		LCDwriteString("test",2);
+		Wait(1.0);
+		LCDwriteString("test",3);
+		Wait(1.0);
+		LCDwriteString("test",4);
+		Wait(1.0);//wait so no refresh
 	}
 };
 
